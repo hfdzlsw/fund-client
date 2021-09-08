@@ -126,17 +126,17 @@ def reload_chart(code, chart, chart_view):
     try:
         if len(str(code)) == 6:  # 基金编号只有6位  161725
             series = create_linechart(chart)
-            res = requests.get("http://www.jjmmw.com/fund/ajax/jjgz_timechart/?fund_id={}&detail=1".format(code))
+            res = requests.get("https://fundmobapi.eastmoney.com/FundMApi/FundVarietieValuationDetail.ashx?version=6.4.6&plat=Android&appType=ttjj&FCODE={}&deviceid=35a8e65d9e6d8f9907ed005f247944e8%7C%7C918621430828768&product=EFund&MobileKey=35a8e65d9e6d8f9907ed005f247944e8%7C%7C918621430828768".format(code))
             res = json.loads(res.text)
             if res:
-                time_chart = res["timechart"]
+                data = res["Datas"]
                 y_max = 0
                 y_min = 0
                 first_x_custom_value = ""
-                for i in range(len(time_chart)):
-                    one = time_chart[i]
+                for i in range(len(data)):
+                    one = data[i]
                     # y轴
-                    y_value = round(float(one["estchngpct"]), 2)
+                    y_value = float(one.split(",")[2])
                     if i == 0:
                         y_min, y_max = y_value, y_value
                     else:
@@ -168,7 +168,7 @@ def reload_chart(code, chart, chart_view):
                 axis_y = chart.axisY()
                 axis_y.setMax(y_max)
                 axis_y.setMin(y_min)
-                chart.setTitle(res["fundname"])
+                chart.setTitle(res["Expansion"]["SHORTNAME"])
     except Exception as e:
         raise e
 

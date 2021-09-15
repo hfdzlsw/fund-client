@@ -132,7 +132,7 @@ def reload_chart(code, chart, chart_view):
                 data = res["Datas"]
                 y_max = 0
                 y_min = 0
-                first_x_custom_value = ""
+                last_time = ""
                 for i in range(len(data)):
                     one = data[i]
                     # y轴
@@ -147,21 +147,45 @@ def reload_chart(code, chart, chart_view):
                     # x轴
                     # x_time = QDateTime.fromString(one["time"].split(" ")[1], "hh:mm:ss").toMSecsSinceEpoch()
                     x_time = i
+                    if i == len(data) - 1:
+                        last_time = one.split(",")[1]
                     series.append(x_time, y_value)
+                try:
+                    last_datetime = datetime.time(int(last_time.split(":")[0]), int(last_time.split(":")[1]))
+                except Exception as e:
+                    return
                 chart.addSeries(series)
                 chart.createDefaultAxes()  # 创建默认的轴
                 # 自定义x轴
-                category = ["09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30", "15:00"]
-                x_len = len(category)
+                category_datetime = [
+                    datetime.time(9, 30), datetime.time(10, 0), datetime.time(10, 30),
+                    datetime.time(11, 0), datetime.time(11, 30), datetime.time(13, 0),
+                    datetime.time(13, 30), datetime.time(14, 0), datetime.time(14, 30),
+                    datetime.time(15, 0)
+                ]
+                # category = ["09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30", "15:00"]
                 x_min = chart.axisX().min()
                 x_max = chart.axisX().max()
                 axis_x = QCategoryAxis(chart, labelsPosition=QCategoryAxis.AxisLabelsPositionOnValue)
-                if x_len < 2:
-                    axis_x.append(first_x_custom_value, x_min)
+                break_out = False
+                real_category_datetime = []
+                if len(data) == 1:  # 9点半时候
+                    axis_x.append(last_datetime.strftime('%H:%M'), x_min)
+                    x_len = 1
                 else:
+                    for i in range(len(category_datetime)):  # 筛选出真实的时间点
+                        one_category_datetime = category_datetime[i]
+                        if last_datetime < one_category_datetime:
+                            one_category_datetime = last_datetime
+                            break_out = True
+                        real_category_datetime.append(one_category_datetime)
+                        if break_out:
+                            break
+                    x_len = len(real_category_datetime)
                     step = (x_max - x_min) / (x_len - 1)
-                    for i in range(len(category)):
-                        axis_x.append(category[i], x_min + i * step)
+                    for i in range(len(real_category_datetime)):
+                        one_category_datetime = real_category_datetime[i]
+                        axis_x.append(one_category_datetime.strftime('%H:%M'), x_min + i * step)
                 axis_x.setTickCount(x_len)  # 设置刻度个数
                 axis_x.setGridLineVisible(False)  # 隐藏网格线条
                 chart.setAxisX(axis_x, series)

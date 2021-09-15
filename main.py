@@ -126,6 +126,8 @@ def reload_chart(code, chart, chart_view):
     try:
         if len(str(code)) == 6:  # 基金编号只有6位  161725
             series = create_linechart(chart)
+            zero_series = create_linechart(chart)  # 0值线
+            zero_series.setColor(QColor(0, 221, 85))
             res = requests.get("https://fundmobapi.eastmoney.com/FundMApi/FundVarietieValuationDetail.ashx?version=6.4.6&plat=Android&appType=ttjj&FCODE={}&deviceid=35a8e65d9e6d8f9907ed005f247944e8%7C%7C918621430828768&product=EFund&MobileKey=35a8e65d9e6d8f9907ed005f247944e8%7C%7C918621430828768".format(code))
             res = json.loads(res.text)
             if res:
@@ -144,17 +146,22 @@ def reload_chart(code, chart, chart_view):
                             y_max = y_value
                         if y_value < y_min:
                             y_min = y_value
-                    # x轴
-                    # x_time = QDateTime.fromString(one["time"].split(" ")[1], "hh:mm:ss").toMSecsSinceEpoch()
+                        # 设置颜色
+                        if y_value < 0:
+                            series.setColor(QColor(51, 153, 0))  # 跌
+                        else:
+                            series.setColor(QColor(204, 0, 0))  # 涨
                     x_time = i
                     if i == len(data) - 1:
                         last_time = one.split(",")[1]
                     series.append(x_time, y_value)
+                    zero_series.append(x_time, 0)
                 try:
                     last_datetime = datetime.time(int(last_time.split(":")[0]), int(last_time.split(":")[1]))
                 except Exception as e:
                     return
                 chart.addSeries(series)
+                chart.addSeries(zero_series)
                 chart.createDefaultAxes()  # 创建默认的轴
                 # 自定义x轴
                 category_datetime = [
@@ -190,6 +197,10 @@ def reload_chart(code, chart, chart_view):
                 axis_x.setGridLineVisible(False)  # 隐藏网格线条
                 chart.setAxisX(axis_x, series)
                 axis_y = chart.axisY()
+                if 0 > y_max:
+                    y_max = 0.1
+                if 0 < y_min:
+                    y_min = -0.1
                 axis_y.setMax(y_max)
                 axis_y.setMin(y_min)
                 chart.setTitle(res["Expansion"]["SHORTNAME"])
